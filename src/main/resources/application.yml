@@ -1,6 +1,11 @@
 spring:
   application:
     name: rag-qa-service
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/dms_ai_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
   ai:
     openai:
       api-key: ${DEEPSEEK_API_KEY}
@@ -8,3 +13,8 @@ spring:
       chat:
         model: deepseek-flash
         temperature: 0.7
+    chat:
+      memory:
+        repository:
+          jdbc:
+            initialize-schema: never
