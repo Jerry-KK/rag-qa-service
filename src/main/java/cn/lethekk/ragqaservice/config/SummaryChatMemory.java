@@ -9,7 +9,6 @@ import org.springframework.ai.chat.messages.SystemMessage;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 
@@ -106,12 +105,14 @@ public class SummaryChatMemory implements ChatMemory {
 
         return SystemMessage.builder()
                 .text("以下是这次对话早先内容的摘要: \n" + summary)
-                .metadata(Map.of(SUMMARY_FLAG, true))
+//                .metadata(Map.of(SUMMARY_FLAG, true))
                 .build();
     }
 
     private boolean isSummary(Message message) {
-        return message.getMetadata().containsKey(SUMMARY_FLAG);
+        String text = message.getText();
+        return text != null && text.startsWith("以下是这次对话早先内容的摘要:");
+//        return message.getMetadata().containsKey(SUMMARY_FLAG);
     }
 
 }
