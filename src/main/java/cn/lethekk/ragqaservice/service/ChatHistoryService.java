@@ -1,11 +1,8 @@
 package cn.lethekk.ragqaservice.service;
 
-import cn.lethekk.ragqaservice.dao.ChatConversationMapper;
-import cn.lethekk.ragqaservice.dao.ChatHistoryMapper;
-import cn.lethekk.ragqaservice.model.po.ChatConversationPO;
-import cn.lethekk.ragqaservice.model.po.ChatHistoryPO;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import cn.lethekk.ragqaservice.adapter.outbound.repository.ChatHistoryRepository;
+import cn.lethekk.ragqaservice.model.domain.ChatMessage;
+import cn.lethekk.ragqaservice.model.domain.Conversation;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,17 +21,14 @@ public class ChatHistoryService {
 
     private static final int TITLE_MAX_LENGTH = 64;
 
-    private final ChatConversationMapper conversationMapper;
-    private final ChatHistoryMapper historyMapper;
+    private final ChatHistoryRepository chatHistoryRepository;
 
     //获取全部会话消息
-    public List<ChatHistoryPO> listMessages(String conversationId, Integer userId) {
+    public List<ChatMessage> listMessages(String conversationId, Integer userId) {
         if (!isOwner(conversationId, userId)) {
             return List.of();
         }
-        return historyMapper.selectList(new LambdaQueryWrapper<ChatHistoryPO>()
-                .eq(ChatHistoryPO::getConversationId, conversationId)
-                .orderByAsc(ChatHistoryPO::getSequenceId));
+        return chatHistoryRepository.findMessagesByConversationId(conversationId);
     }
 
     //删除会话
@@ -43,29 +37,27 @@ public class ChatHistoryService {
         if (!isOwner(conversationId, userId)) {
             return false;
         }
-        historyMapper.delete(new LambdaQueryWrapper<ChatHistoryPO>()
-                .eq(ChatHistoryPO::getConversationId, conversationId));
-        return conversationMapper.deleteById(conversationId) > 0;
+        chatHistoryRepository.deleteMessagesByConversationId(conversationId);
+        return chatHistoryRepository.deleteConversationById(conversationId);
     }
 
     //获取会话列表
-    public List<ChatConversationPO> listConversations(Integer userId) {
-        return conversationMapper.selectList(new LambdaQueryWrapper<ChatConversationPO>()
-                .eq(ChatConversationPO::getUserId, userId)
-                .orderByDesc(ChatConversationPO::getCreateTime));
+    public List<Conversation> listConversations(Integer userId) {
+        return chatHistoryRepository.findConversationsByUserId(userId);
     }
 
     //修改会话标题
     public boolean updateTitle(String conversationId, Integer userId, String title) {
-        return conversationMapper.update(null, new LambdaUpdateWrapper<ChatConversationPO>()
-                .eq(ChatConversationPO::getConversationId, conversationId)
-                .eq(ChatConversationPO::getUserId, userId)
-                .set(ChatConversationPO::getTitle, truncateTitle(title))) > 0;
+        if (!isOwner(conversationId, userId)) {
+            return false;
+        }
+        return chatHistoryRepository.updateConversationTitle(conversationId, truncateTitle(title));
     }
 
     private boolean isOwner(String conversationId, Integer userId) {
-        ChatConversationPO conversation = conversationMapper.selectById(conversationId);
-        return conversation != null && userId.equals(conversation.getUserId());
+        return chatHistoryRepository.findConversationById(conversationId)
+                .map(conversation -> conversation.isOwnedBy(userId))
+                .orElse(false);
     }
 
     private String truncateTitle(String text) {

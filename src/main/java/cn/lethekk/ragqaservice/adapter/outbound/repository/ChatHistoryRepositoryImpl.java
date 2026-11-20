@@ -1,0 +1,88 @@
+package cn.lethekk.ragqaservice.adapter.outbound.repository;
+
+import cn.lethekk.ragqaservice.dao.ChatConversationMapper;
+import cn.lethekk.ragqaservice.dao.ChatHistoryMapper;
+import cn.lethekk.ragqaservice.model.domain.ChatMessage;
+import cn.lethekk.ragqaservice.model.domain.Conversation;
+import cn.lethekk.ragqaservice.model.po.ChatConversationPO;
+import cn.lethekk.ragqaservice.model.po.ChatHistoryPO;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import lombok.AllArgsConstructor;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+@AllArgsConstructor
+public class ChatHistoryRepositoryImpl implements ChatHistoryRepository {
+
+    private final ChatConversationMapper conversationMapper;
+    private final ChatHistoryMapper historyMapper;
+
+    @Override
+    public Optional<Conversation> findConversationById(String conversationId) {
+        return Optional.ofNullable(conversationMapper.selectById(conversationId)).map(this::toDomain);
+    }
+
+    @Override
+    public List<Conversation> findConversationsByUserId(Integer userId) {
+        return conversationMapper.selectList(new LambdaQueryWrapper<ChatConversationPO>()
+                        .eq(ChatConversationPO::getUserId, userId)
+                        .orderByDesc(ChatConversationPO::getCreateTime))
+                .stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<ChatMessage> findMessagesByConversationId(String conversationId) {
+        return historyMapper.selectList(new LambdaQueryWrapper<ChatHistoryPO>()
+                        .eq(ChatHistoryPO::getConversationId, conversationId)
+                        .orderByAsc(ChatHistoryPO::getSequenceId))
+                .stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
+    public boolean updateConversationTitle(String conversationId, String title) {
+        return conversationMapper.update(null, new LambdaUpdateWrapper<ChatConversationPO>()
+                .eq(ChatConversationPO::getConversationId, conversationId)
+                .set(ChatConversationPO::getTitle, title)) > 0;
+    }
+
+    @Override
+    public void deleteMessagesByConversationId(String conversationId) {
+        historyMapper.delete(new LambdaQueryWrapper<ChatHistoryPO>()
+                .eq(ChatHistoryPO::getConversationId, conversationId));
+    }
+
+    @Override
+    public boolean deleteConversationById(String conversationId) {
+        return conversationMapper.deleteById(conversationId) > 0;
+    }
+
+    private Conversation toDomain(ChatConversationPO po) {
+        Conversation conversation = new Conversation();
+        conversation.setConversationId(po.getConversationId());
+        conversation.setUserId(po.getUserId());
+        conversation.setTitle(po.getTitle());
+        conversation.setCreateTime(po.getCreateTime());
+        return conversation;
+    }
+
+    private ChatMessage toDomain(ChatHistoryPO po) {
+        ChatMessage message = new ChatMessage();
+        message.setHistoryId(po.getHistoryId());
+        message.setConversationId(po.getConversationId());
+        message.setSequenceId(po.getSequenceId());
+        message.setUserId(po.getUserId());
+        message.setContent(po.getContent());
+        message.setRole(po.getType());
+        message.setTimestamp(po.getTimestamp());
+        return message;
+    }
+
+}

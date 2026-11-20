@@ -1,0 +1,23 @@
+package cn.lethekk.ragqaservice.adapter.outbound.repository;
+
+import cn.lethekk.ragqaservice.model.domain.ChatMessage;
+import cn.lethekk.ragqaservice.model.domain.Conversation;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface ChatHistoryRepository {
+
+    Optional<Conversation> findConversationById(String conversationId);
+
+    List<Conversation> findConversationsByUserId(Integer userId);
+
+    List<ChatMessage> findMessagesByConversationId(String conversationId);
+
+    boolean updateConversationTitle(String conversationId, String title);
+
+    void deleteMessagesByConversationId(String conversationId);
+
+    boolean deleteConversationById(String conversationId);
+
+}

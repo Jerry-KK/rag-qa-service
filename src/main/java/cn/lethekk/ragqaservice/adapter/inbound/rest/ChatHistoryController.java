@@ -1,7 +1,9 @@
 package cn.lethekk.ragqaservice.adapter.inbound.rest;
 
-import cn.lethekk.ragqaservice.model.po.ChatConversationPO;
-import cn.lethekk.ragqaservice.model.po.ChatHistoryPO;
+import cn.lethekk.ragqaservice.model.domain.ChatMessage;
+import cn.lethekk.ragqaservice.model.domain.Conversation;
+import cn.lethekk.ragqaservice.model.vo.ChatMessageVO;
+import cn.lethekk.ragqaservice.model.vo.ConversationVO;
 import cn.lethekk.ragqaservice.service.ChatHistoryService;
 import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -28,14 +30,14 @@ public class ChatHistoryController {
 
     //获取用户对话列表
     @GetMapping("/conversations")
-    public List<ChatConversationPO> getConversationList(@RequestParam Integer userId) {
-        return service.listConversations(userId);
+    public List<ConversationVO> getConversationList(@RequestParam Integer userId) {
+        return service.listConversations(userId).stream().map(this::toVO).toList();
     }
 
     //获取指定会话的全部消息
     @GetMapping("/conversations/{conversationId}/messages")
-    public List<ChatHistoryPO> getMessages(@PathVariable String conversationId, @RequestParam Integer userId) {
-        return service.listMessages(conversationId, userId);
+    public List<ChatMessageVO> getMessages(@PathVariable String conversationId, @RequestParam Integer userId) {
+        return service.listMessages(conversationId, userId).stream().map(this::toVO).toList();
     }
 
     //修改会话标题
@@ -49,6 +51,25 @@ public class ChatHistoryController {
     @DeleteMapping("/conversations/{conversationId}")
     public boolean delConversation(@PathVariable String conversationId, @RequestParam Integer userId) {
         return service.deleteConversation(conversationId, userId);
+    }
+
+    private ConversationVO toVO(Conversation conversation) {
+        ConversationVO vo = new ConversationVO();
+        vo.setConversationId(conversation.getConversationId());
+        vo.setTitle(conversation.getTitle());
+        vo.setCreateTime(conversation.getCreateTime());
+        return vo;
+    }
+
+    private ChatMessageVO toVO(ChatMessage message) {
+        ChatMessageVO vo = new ChatMessageVO();
+        vo.setHistoryId(message.getHistoryId());
+        vo.setConversationId(message.getConversationId());
+        vo.setSequenceId(message.getSequenceId());
+        vo.setContent(message.getContent());
+        vo.setRole(message.getRole());
+        vo.setTimestamp(message.getTimestamp());
+        return vo;
     }
 
 }
