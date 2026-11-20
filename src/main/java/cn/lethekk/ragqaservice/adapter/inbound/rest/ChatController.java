@@ -18,13 +18,9 @@ public class ChatController {
 
     private final ChatService chatService;
 
-    //todo 记忆
     @GetMapping("/ask")
-    public String ask(@RequestParam String question, @RequestParam String userId, @RequestParam String sessionId) {
+    public String ask(@RequestParam String question, @RequestParam Integer userId, @RequestParam String sessionId) {
         return chatService.ask(question, userId, sessionId);
     }
-
-    //todo 持久化
-    //查询历史会话(供前端展示)
 
 }

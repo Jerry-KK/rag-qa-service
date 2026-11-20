@@ -47,6 +47,25 @@ public class ChatHistoryRepositoryImpl implements ChatHistoryRepository {
     }
 
     @Override
+    public long findMaxSequenceId(String conversationId) {
+        ChatHistoryPO last = historyMapper.selectOne(new LambdaQueryWrapper<ChatHistoryPO>()
+                .eq(ChatHistoryPO::getConversationId, conversationId)
+                .orderByDesc(ChatHistoryPO::getSequenceId)
+                .last("LIMIT 1"));
+        return last == null ? 0L : last.getSequenceId();
+    }
+
+    @Override
+    public void saveConversation(Conversation conversation) {
+        conversationMapper.insert(toPO(conversation));
+    }
+
+    @Override
+    public void saveMessages(List<ChatMessage> messages) {
+        messages.forEach(message -> historyMapper.insert(toPO(message)));
+    }
+
+    @Override
     public boolean updateConversationTitle(String conversationId, String title) {
         return conversationMapper.update(null, new LambdaUpdateWrapper<ChatConversationPO>()
                 .eq(ChatConversationPO::getConversationId, conversationId)
@@ -83,6 +102,27 @@ public class ChatHistoryRepositoryImpl implements ChatHistoryRepository {
         message.setRole(po.getType());
         message.setTimestamp(po.getTimestamp());
         return message;
+    }
+
+    private ChatConversationPO toPO(Conversation conversation) {
+        ChatConversationPO po = new ChatConversationPO();
+        po.setConversationId(conversation.getConversationId());
+        po.setUserId(conversation.getUserId());
+        po.setTitle(conversation.getTitle());
+        po.setCreateTime(conversation.getCreateTime());
+        return po;
+    }
+
+    private ChatHistoryPO toPO(ChatMessage message) {
+        ChatHistoryPO po = new ChatHistoryPO();
+        po.setHistoryId(message.getHistoryId());
+        po.setConversationId(message.getConversationId());
+        po.setSequenceId(message.getSequenceId());
+        po.setUserId(message.getUserId());
+        po.setContent(message.getContent());
+        po.setType(message.getRole());
+        po.setTimestamp(message.getTimestamp());
+        return po;
     }
 
 }

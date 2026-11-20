@@ -8,7 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * @Author Lethekk
@@ -20,8 +22,28 @@ import java.util.List;
 public class ChatHistoryService {
 
     private static final int TITLE_MAX_LENGTH = 64;
+    private static final String ROLE_USER = "USER";
+    private static final String ROLE_ASSISTANT = "ASSISTANT";
 
     private final ChatHistoryRepository chatHistoryRepository;
+
+    //保存一轮问答，会话不存在时先创建
+    @Transactional(rollbackFor = Exception.class)
+    public void saveRound(String conversationId, Integer userId, String question, String answer) {
+        LocalDateTime now = LocalDateTime.now();
+        if (chatHistoryRepository.findConversationById(conversationId).isEmpty()) {
+            Conversation conversation = new Conversation();
+            conversation.setConversationId(conversationId);
+            conversation.setUserId(userId);
+            conversation.setTitle(truncateTitle(question));
+            conversation.setCreateTime(now);
+            chatHistoryRepository.saveConversation(conversation);
+        }
+        long maxSequenceId = chatHistoryRepository.findMaxSequenceId(conversationId);
+        chatHistoryRepository.saveMessages(List.of(
+                buildMessage(conversationId, userId, maxSequenceId + 1, question, ROLE_USER, now),
+                buildMessage(conversationId, userId, maxSequenceId + 2, answer, ROLE_ASSISTANT, now)));
+    }
 
     //获取全部会话消息
     public List<ChatMessage> listMessages(String conversationId, Integer userId) {
@@ -62,6 +84,19 @@ public class ChatHistoryService {
 
     private String truncateTitle(String text) {
         return text.length() <= TITLE_MAX_LENGTH ? text : text.substring(0, TITLE_MAX_LENGTH);
+    }
+
+    private ChatMessage buildMessage(String conversationId, Integer userId, long sequenceId,
+                                     String content, String role, LocalDateTime timestamp) {
+        ChatMessage message = new ChatMessage();
+        message.setHistoryId(UUID.randomUUID().toString());
+        message.setConversationId(conversationId);
+        message.setSequenceId(sequenceId);
+        message.setUserId(userId);
+        message.setContent(content);
+        message.setRole(role);
+        message.setTimestamp(timestamp);
+        return message;
     }
 
 }

@@ -14,6 +14,12 @@ public interface ChatHistoryRepository {
 
     List<ChatMessage> findMessagesByConversationId(String conversationId);
 
+    long findMaxSequenceId(String conversationId);
+
+    void saveConversation(Conversation conversation);
+
+    void saveMessages(List<ChatMessage> messages);
+
     boolean updateConversationTitle(String conversationId, String title);
 
     void deleteMessagesByConversationId(String conversationId);
